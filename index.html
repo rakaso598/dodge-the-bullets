@@ -61,8 +61,8 @@
             justify-content: center;
         }
         .control-btn {
-            width: 50px;
-            height: 50px;
+            width: 60px;
+            height: 60px;
             margin: 5px;
             background-color: #007bff;
             color: white;
@@ -112,6 +112,8 @@
                 <div class="control-btn" id="right">▶</div>
             </div>
         </div>
+
+        <div id="empty-box" style="width: 10px; height: 50px;"></div>
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/phaser@3.55.2/dist/phaser.js"></script>
@@ -146,8 +148,9 @@
         const game = new Phaser.Game(config);
 
         function preload() {
-            this.load.image('player', 'https://examples.phaser.io/assets/sprites/phaser-dude.png');
-            this.load.image('bullet', 'https://examples.phaser.io/assets/sprites/bullet.png');
+            // 로컬 이미지 파일 경로 수정
+            this.load.image('player', 'player.png'); // 플레이어 이미지 경로
+            this.load.image('bullet', 'bullet.png'); // 장애물 이미지 경로
         }
 
         function create() {
