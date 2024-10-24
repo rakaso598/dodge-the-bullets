@@ -156,6 +156,7 @@
         function create() {
             player = this.physics.add.sprite(160, 160, 'player').setScale(0.75); // 플레이어 크기 조정
             player.setCollideWorldBounds(true);
+            player.body.setSize(20, 20); // 플레이어 충돌 영역 설정
 
             bullets = this.physics.add.group({
                 key: 'bullet',
@@ -168,6 +169,7 @@
                 bullet.setVelocity(Phaser.Math.Between(-200, 200), Phaser.Math.Between(-200, 200));
                 bullet.setBounce(1);
                 bullet.setScale(0.15); // 장애물 크기 조정
+                bullet.body.setSize(2, 2); // 장애물 충돌 영역 설정
             });
 
             cursors = this.input.keyboard.createCursorKeys();
