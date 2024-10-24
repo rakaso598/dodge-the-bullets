@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>총알 피하기 게임</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #1a1a1a;
+            color: white;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            overflow: hidden;
+            flex-direction: column; /* 세로 방향으로 정렬 */
+        }
+        #gameContainer {
+            text-align: center;
+            margin-top: 20px;
+        }
+        #scoreBoard {
+            font-size: 20px;
+        }
+        #resetButton {
+            padding: 6px 16px;
+            font-size: 16px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            cursor: pointer;
+            border-radius: 5px;
+            margin-bottom: 8px;
+        }
+        #resetButton:hover {
+            background-color: #0056b3;
+        }
+        #instructions {
+            font-size: 18px;
+            margin-bottom: 8px;
+        }
+        #phaser-game {
+            border: 2px solid #007bff;
+            background-color: black;
+            display: inline-block;
+            width: 320px; /* 게임 캔버스 크기 유지 */
+            height: 320px; /* 게임 캔버스 크기 유지 */
+        }
+        /* 모바일 조작 버튼 스타일 */
+        #mobileControls {
+            display: none;
+            flex-direction: column; /* 세로 방향으로 정렬 */
+            align-items: center;
+            margin-top: 10px;
+        }
+        .control-row {
+            display: flex;
+            justify-content: center;
+        }
+        .control-btn {
+            width: 50px;
+            height: 50px;
+            margin: 5px;
+            background-color: #007bff;
+            color: white;
+            font-size: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        .control-btn:active {
+            background-color: #0056b3;
+        }
+        /* 미디어 쿼리로 PC 화면일 때 스타일 */
+        @media (min-width: 768px) {
+            #mobileControls {
+                display: none; /* PC에서는 모바일 조작 버튼 숨김 */
+            }
+        }
+        /* 미디어 쿼리로 모바일 화면일 때 스타일 */
+        @media (max-width: 767px) {
+            #phaser-game {
+                margin-top: 20px; /* 게임 화면이 약간 위로 이동 */
+            }
+            #mobileControls {
+                display: flex;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="gameContainer">
+        <div><button id="resetButton">리셋</button></div>
+        <div id="instructions">방향키로 이동하여 총알을 피하세요!</div>
+        <div id="scoreBoard">점수: 0</div>
+        <div id="phaser-game"></div>
+
+
+        <!-- 모바일 조작 버튼 -->
+        <div id="mobileControls">
+            <div class="control-row">
+                <div class="control-btn" id="up">▲</div>
+            </div>
+            <div class="control-row">
+                <div class="control-btn" id="left">◀</div>
+                <div class="control-btn" id="down">▼</div>
+                <div class="control-btn" id="right">▶</div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/phaser@3.55.2/dist/phaser.js"></script>
+    <script>
+        let score = 0;
+        let scoreText;
+        let player;
+        let cursors;
+        let bullets;
+        let gameOver = false;
+        let mobileControls = false;
+
+        const config = {
+            type: Phaser.AUTO,
+            width: 320,
+            height: 320,
+            parent: 'phaser-game',
+            physics: {
+                default: 'arcade',
+                arcade: {
+                    gravity: { y: 0 },
+                    debug: false
+                }
+            },
+            scene: {
+                preload: preload,
+                create: create,
+                update: update
+            }
+        };
+
+        const game = new Phaser.Game(config);
+
+        function preload() {
+            this.load.image('player', 'https://examples.phaser.io/assets/sprites/phaser-dude.png');
+            this.load.image('bullet', 'https://examples.phaser.io/assets/sprites/bullet.png');
+        }
+
+        function create() {
+            player = this.physics.add.sprite(160, 160, 'player').setScale(0.25); // 플레이어 크기 조정
+            player.setCollideWorldBounds(true);
+
+            bullets = this.physics.add.group({
+                key: 'bullet',
+                repeat: 10,
+                setXY: { x: 12, y: 0, stepX: 70 }
+            });
+
+            bullets.children.iterate(function (bullet) {
+                bullet.setCollideWorldBounds(true);
+                bullet.setVelocity(Phaser.Math.Between(-200, 200), Phaser.Math.Between(-200, 200));
+                bullet.setBounce(1);
+                bullet.setScale(0.25); // 장애물 크기 조정
+            });
+
+            cursors = this.input.keyboard.createCursorKeys();
+
+            scoreText = document.getElementById('scoreBoard');
+
+            this.physics.add.collider(player, bullets, hitBullet, null, this);
+            
+            // 모바일 조작 버튼 이벤트
+            document.getElementById('up').addEventListener('touchstart', () => player.setVelocityY(-160));
+            document.getElementById('down').addEventListener('touchstart', () => player.setVelocityY(160));
+            document.getElementById('left').addEventListener('touchstart', () => player.setVelocityX(-160));
+            document.getElementById('right').addEventListener('touchstart', () => player.setVelocityX(160));
+
+            document.getElementById('up').addEventListener('touchend', stopPlayer);
+            document.getElementById('down').addEventListener('touchend', stopPlayer);
+            document.getElementById('left').addEventListener('touchend', stopPlayer);
+            document.getElementById('right').addEventListener('touchend', stopPlayer);
+        }
+
+        function update() {
+            if (gameOver) {
+                return;
+            }
+
+            if (!mobileControls) {
+                if (cursors.left.isDown) {
+                    player.setVelocityX(-160);
+                } else if (cursors.right.isDown) {
+                    player.setVelocityX(160);
+                } else {
+                    player.setVelocityX(0);
+                }
+
+                if (cursors.up.isDown) {
+                    player.setVelocityY(-160);
+                } else if (cursors.down.isDown) {
+                    player.setVelocityY(160);
+                } else {
+                    player.setVelocityY(0);
+                }
+            }
+
+            score += 1;
+            scoreText.innerText = '점수: ' + score;
+        }
+
+        function hitBullet(player, bullet) {
+            this.physics.pause();
+            player.setTint(0xff0000);
+            gameOver = true;
+            scoreText.innerText = '게임 오버! 점수: ' + score;
+        }
+
+        function stopPlayer() {
+            player.setVelocityX(0);
+            player.setVelocityY(0);
+        }
+
+        document.getElementById('resetButton').addEventListener('click', function () {
+            location.reload(); // 페이지를 새로고침하여 초기 상태로 돌아가게 함
+        });
+
+        // 모바일인지 체크하여 모바일 컨트롤 표시
+        if (window.innerWidth < 768) {
+            mobileControls = true;
+            document.getElementById('mobileControls').style.display = 'flex';
+        }
+    </script>
+</body>
+</html>
